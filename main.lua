@@ -7,23 +7,17 @@ local function splitString(inpstr)
 end
 
 local function dirLookup(dir)
-  projects = {}      
+  local listLookup = {}      
   for file in io.popen([[dir "]]..dir..[[" /b]]):lines() do
     if (#splitString(file) > 0) then
       for i = 1, #splitString(file), 1 do
-         projects[#projects+1] = splitString(file)[i] 
+         listLookup[#listLookup+1] = splitString(file)[i] 
       end
     else
-      projects[#projects+1] = file
+      listLookup[#listLookup+1] = file
     end
   end
-  projectsSantised = {}
-  for i=1,#projects do
-   if ( string.sub(projects[i], -5) == ".proj" ) then
-      projectsSantised[#projectsSantised+1] = projects[i]
-   end
-  end
-  return projects
+  return listLookup
 end
 
 local lists = dirLookup(love.filesystem.getWorkingDirectory().."/data/")
@@ -118,6 +112,24 @@ function checkanswer()
   if success == false then wronganswers = wronganswers + 1 end
 end
 
+function resetGuess()
+  guess1txt = ""
+  guess2txt = ""
+  guess1num = {}
+  guess2num = {}
+end
+
+function resetGame()
+  wronganswers = 0
+  loaded_list = {}
+  mixed_list = {}
+  clickcounter = 0
+  guess1txt = ""
+  guess2txt = ""
+  guess1num = {}
+  guess2num = {}
+end
+
 function love.draw()
   love.graphics.setColor(1, 1, 1)
   love.graphics.draw(background, 0, 0)
@@ -162,37 +174,35 @@ end
 
 function love.mousepressed(x, y, button, istouch)
   if x > 20 and y > 31 and x < 200 then
-    wronganswers = 0
-    loaded_list = {}
-    mixed_list = {}
-    clickcounter = 0
-    guess1txt = ""
-    guess2txt = ""
-    guess1num = {}
-    guess2num = {}
+    resetGame()
     loadFile(math.floor((y/31) + 0.5))
   end
   if wronganswers < 6 then
     if x > 240 and y > 31 then
       local clicked
-      if x < 450 then clicked = mixed_list[(math.floor((y/31) + 0.5))][1] end 
-      if x > 450 then clicked = mixed_list[(math.floor((y/31) + 0.5))][2] end
-      local num = (math.floor((y/31) + 0.5))
-      if clickcounter == 0 then
-        guess1txt = clicked
-        guess1num = {num, (x > 450)}
-      elseif clickcounter == 1 then 
-        guess2txt = clicked 
-        guess2num = {num, (x > 450)}
-        if tostring(guess1num[2]) == tostring(guess2num[2]) then
-          clickcounter = -1
-          guess1txt = ""
-          guess2txt = ""
-          guess1num = {}
-          guess2num = {}
+      if mixed_list[(math.floor((y/31) + 0.5))] ~= null then
+        if x < 450 then clicked = mixed_list[(math.floor((y/31) + 0.5))][1] end 
+        if x > 450 then clicked = mixed_list[(math.floor((y/31) + 0.5))][2] end
+        local num = (math.floor((y/31) + 0.5))
+        if mixed_list[(math.floor((y/31) + 0.5))][1] ~= "" and x < 450 or
+           mixed_list[(math.floor((y/31) + 0.5))][2] ~= "" and x > 450 then
+          if clickcounter == 0 then
+            guess1txt = clicked
+            guess1num = {num, (x > 450)}
+          elseif clickcounter == 1 then 
+            guess2txt = clicked 
+            guess2num = {num, (x > 450)}
+            if tostring(guess1num[2]) == tostring(guess2num[2]) then
+              clickcounter = -1
+              resetGuess()
+            end
+          end
+          clickcounter = clickcounter + 1
+        else
+          clickcounter = 0
+          resetGuess()
         end
       end
-      clickcounter = clickcounter + 1
     end
     if clickcounter == 2 then
       checkanswer()
@@ -201,29 +211,19 @@ function love.mousepressed(x, y, button, istouch)
         finished = true
       end
       clickcounter = 0
-      guess1txt = ""
-      guess2txt = ""
-      guess1num = {}
-      guess2num = {}
+      resetGuess()
     end
   end
   getScore()
   if score == 20 and x > 240 then
     finished = true
     clickcounter = 0
-    guess1txt = ""
-    guess2txt = ""
-    guess1num = {}
-    guess2num = {}
+    resetGuess()
   end
 end
 
 function love.keypressed(key, code)
   if key == "escape" then
-    clickcounter = 0
-    guess1txt = ""
-    guess2txt = ""
-    guess1num = {}
-    guess2num = {}
+    resetGuess()
   end
 end
