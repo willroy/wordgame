@@ -7,20 +7,15 @@ local function splitString(inpstr)
 end
 
 local function dirLookup(dir)
-  local listLookup = {}      
-  for file in io.popen([[dir "]]..dir..[[" /b]]):lines() do
-    if (#splitString(file) > 0) then
-      for i = 1, #splitString(file), 1 do
-         listLookup[#listLookup+1] = splitString(file)[i] 
-      end
-    else
+  local listLookup = {}
+  local files = love.filesystem.getDirectoryItems(dir)
+  for k, file in ipairs(files) do
       listLookup[#listLookup+1] = file
-    end
   end
   return listLookup
 end
 
-local lists = dirLookup(love.filesystem.getWorkingDirectory().."/data/")
+local lists = dirLookup("/data/")
 local loaded_list = {}
 local mixed_list = {}
 local background = love.graphics.newImage("/assets/background.png")
@@ -35,14 +30,17 @@ local guess2num = {}
 local wronganswers = 0
 local score = 0
 local finished = false
+local menu = true
+local last_pos = {0, 0}
 
 function loadFile(filenum)
-  finished = false
   if lists[filenum] == null then return false end
+  finished = false
+  menu = false
   loaded_list = {}
   local mixed1 = {}
   local mixed2 = {}
-  for line in io.lines(love.filesystem.getWorkingDirectory().."/data/"..lists[filenum]) do
+  for line in love.filesystem.lines("/data/"..lists[filenum]) do
     local output = {}
     for i in line:gmatch('[^"]+') do  
       output[#output + 1] = i
@@ -125,96 +123,102 @@ function matchDraw()
   love.graphics.setColor(1, 1, 1)
   love.graphics.draw(background, 0, 0)
   love.graphics.setColor(0, 0, 0)
-  if #lists > 0 then
+  if #lists > 0 and menu then
     local count = 1
     for i=1,#lists do
-      love.graphics.print(lists[i], 30, 31*count)
+      love.graphics.print(lists[i], 30, 31*count+20)
       count = count + 1
     end
   end
-  if #mixed_list > 0 then
-    local x, y = love.mouse.getPosition()
-    local count = 1
-    for i=1,#mixed_list do
-      love.graphics.setColor(0.44, 0.614, 0.706)
-      if x > 225 and x < 500 then love.graphics.rectangle("line", 225, (math.floor((y/31) + 0.5))*31, 100, 25) end
-      if x > 500 then love.graphics.rectangle("line", 500, (math.floor((y/31) + 0.5))*31, 100, 25) end
-      love.graphics.setColor(0.3, 1, 0.3)
-      if #guess1num > 0 and guess1num[2] == true then love.graphics.rectangle("line", 500, (guess1num[1])*31, 100, 25) end
-      if #guess1num > 0 and guess1num[2] ~= true then love.graphics.rectangle("line", 225, (guess1num[1])*31, 100, 25) end
-      if #guess2num > 0 and guess1num[2] == true then love.graphics.rectangle("line", 500, (guess2num[1])*31, 100, 25) end
-      if #guess2num > 0 and guess1num[2] ~= true then love.graphics.rectangle("line", 225, (guess2num[1])*31, 100, 25) end
-      love.graphics.setColor(0, 0, 0)
-      love.graphics.print(mixed_list[i][1], 225, 31*count)
-      love.graphics.print(mixed_list[i][2], 500, 31*count)
-      count = count + 1
+  if menu == false and finished == false then
+    if #mixed_list > 0 then
+      local count = 1
+      for i=1,#mixed_list do
+        love.graphics.setColor(0.3, 1, 0.3)
+        if #guess1num > 0 and guess1num[2] == true then love.graphics.rectangle("line", 220, (guess1num[1])*31+20, 100, 25) end
+        if #guess1num > 0 and guess1num[2] ~= true then love.graphics.rectangle("line", 5, (guess1num[1])*31+20, 100, 25) end
+        if #guess2num > 0 and guess1num[2] == true then love.graphics.rectangle("line", 220, (guess2num[1])*31+20, 100, 25) end
+        if #guess2num > 0 and guess1num[2] ~= true then love.graphics.rectangle("line", 5, (guess2num[1])*31+20, 100, 25) end
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.print(mixed_list[i][1], 5, 31*count+20)
+        love.graphics.print(mixed_list[i][2], 220, 31*count+20)
+        count = count + 1
+      end
     end
+    if wronganswers == 1 then love.graphics.print(wronganswers.." mistake", 5, 700)
+    else love.graphics.print(wronganswers.." mistakes", 5, 700) end
   end
   if finished then
     love.graphics.setColor(0.3, 0.3, 0.3, 0.5)
     love.graphics.rectangle("fill", 200, 15, 525, 775)
     love.graphics.setColor(0, 0, 0)
-    love.graphics.print("Score: "..score.." / "..#mixed_list, 850, 225)
-    love.graphics.print("Mistakes: "..wronganswers, 822, 250)
+    love.graphics.print("Score: "..score.." / "..#mixed_list, 5, 50)
+    love.graphics.print("Mistakes: "..wronganswers, 5, 75)
     love.graphics.setColor(1, 1, 1)
-    if score < (#mixed_list/2) then love.graphics.draw(bad, 650, 300) 
-    elseif score < #mixed_list then love.graphics.draw(meh, 650, 300) 
-    elseif score == #mixed_list then love.graphics.draw(good, 650, 300) end
+    if score < (#mixed_list/2) then love.graphics.draw(bad, 5, 200) 
+    elseif score < #mixed_list then love.graphics.draw(meh, 5, 200) 
+    elseif score == #mixed_list then love.graphics.draw(good, 5, 200) end
   end
 end
 
-function matchMousepressed(x, y, button, istouch)
-  if x > 20 and y > 31 and x < 200 then
+function matchTouchpressed(id, x, y, dx, dy, pressure )
+  last_pos[1] = x
+  last_pos[2] = y
+  if menu then
     resetGame()
-    loadFile(math.floor((y/31) + 0.5))
+    loadFile(math.floor(((y-20)/31) + 0.5))
   end
-  if wronganswers < 6 then
-    if x > 240 and y > 31 then
-      local clicked
-      if mixed_list[(math.floor((y/31) + 0.5))] ~= null then
-        if x < 450 then clicked = mixed_list[(math.floor((y/31) + 0.5))][1] end 
-        if x > 450 then clicked = mixed_list[(math.floor((y/31) + 0.5))][2] end
-        local num = (math.floor((y/31) + 0.5))
-        if mixed_list[(math.floor((y/31) + 0.5))][1] ~= "" and x < 450 or
-           mixed_list[(math.floor((y/31) + 0.5))][2] ~= "" and x > 450 then
-          if clickcounter == 0 then
-            guess1txt = clicked
-            guess1num = {num, (x > 450)}
-          elseif clickcounter == 1 then 
-            guess2txt = clicked 
-            guess2num = {num, (x > 450)}
-            if tostring(guess1num[2]) == tostring(guess2num[2]) then
-              clickcounter = -1
-              resetGuess()
+  if finished then
+    finished = false
+    menu = true
+  end
+  if menu == false and finished == false then
+    if wronganswers < 6 then
+      if x > 5 and y > 31+20 then
+        local clicked
+        if mixed_list[(math.floor(((y-20)/31) + 0.5))] ~= null then
+          if x < 245 then clicked = mixed_list[(math.floor(((y-20)/31) + 0.5))][1] end 
+          if x > 245 then clicked = mixed_list[(math.floor(((y-20)/31) + 0.5))][2] end
+          local num = (math.floor(((y-20)/31) + 0.5))
+          if mixed_list[(math.floor(((y-20)/31) + 0.5))][1] ~= "" and x < 245 or
+             mixed_list[(math.floor(((y-20)/31) + 0.5))][2] ~= "" and x > 245 then
+            if clickcounter == 0 then
+              guess1txt = clicked
+              guess1num = {num, (x > 245)}
+            elseif clickcounter == 1 then 
+              guess2txt = clicked 
+              guess2num = {num, (x > 245)}
+              if tostring(guess1num[2]) == tostring(guess2num[2]) then
+                clickcounter = -1
+                resetGuess()
+              end
             end
+            clickcounter = clickcounter + 1
+          else
+            clickcounter = 0
+            resetGuess()
           end
-          clickcounter = clickcounter + 1
-        else
-          clickcounter = 0
-          resetGuess()
         end
       end
-    end
-    if clickcounter == 2 then
-      checkanswer()
-      if wronganswers > 5 then
-        getScore()
-        finished = true
+      if clickcounter == 2 then
+        checkanswer()
+        if wronganswers > 5 then
+          getScore()
+          finished = true
+        end
+        clickcounter = 0
+        resetGuess()
       end
+    end
+    getScore()
+    if score == 20 and x > 220 then
+      finished = true
       clickcounter = 0
       resetGuess()
     end
   end
-  getScore()
-  if score == 20 and x > 240 then
-    finished = true
-    clickcounter = 0
-    resetGuess()
-  end
 end
 
-function matchKeypressed(key, code)
-  if key == "escape" then
-    resetGuess()
-  end
+function matchKeypressed( key, code )
+    if key == "escape" then menu = true end
 end
