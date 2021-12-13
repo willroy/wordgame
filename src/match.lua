@@ -137,15 +137,15 @@ function matchDraw()
     local count = 1
     for i=1,#mixed_list do
       love.graphics.setColor(0.44, 0.614, 0.706)
-      if x > 250 and x < 500 then love.graphics.rectangle("line", 250, (math.floor((y/31) + 0.5))*31, 100, 25) end
+      if x > 225 and x < 500 then love.graphics.rectangle("line", 225, (math.floor((y/31) + 0.5))*31, 100, 25) end
       if x > 500 then love.graphics.rectangle("line", 500, (math.floor((y/31) + 0.5))*31, 100, 25) end
       love.graphics.setColor(0.3, 1, 0.3)
       if #guess1num > 0 and guess1num[2] == true then love.graphics.rectangle("line", 500, (guess1num[1])*31, 100, 25) end
-      if #guess1num > 0 and guess1num[2] ~= true then love.graphics.rectangle("line", 250, (guess1num[1])*31, 100, 25) end
+      if #guess1num > 0 and guess1num[2] ~= true then love.graphics.rectangle("line", 225, (guess1num[1])*31, 100, 25) end
       if #guess2num > 0 and guess1num[2] == true then love.graphics.rectangle("line", 500, (guess2num[1])*31, 100, 25) end
-      if #guess2num > 0 and guess1num[2] ~= true then love.graphics.rectangle("line", 250, (guess2num[1])*31, 100, 25) end
+      if #guess2num > 0 and guess1num[2] ~= true then love.graphics.rectangle("line", 225, (guess2num[1])*31, 100, 25) end
       love.graphics.setColor(0, 0, 0)
-      love.graphics.print(mixed_list[i][1], 250, 31*count)
+      love.graphics.print(mixed_list[i][1], 225, 31*count)
       love.graphics.print(mixed_list[i][2], 500, 31*count)
       count = count + 1
     end
