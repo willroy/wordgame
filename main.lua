@@ -9,10 +9,6 @@ function love.load()
   io.stdout:setvbuf("no")
 end
 
-function love.conf()
-  t.externalstorage = true
-end
-
 function love.draw()
   matchDraw()
 end
